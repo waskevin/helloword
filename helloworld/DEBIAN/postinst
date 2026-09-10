@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+chown -R helloworld:helloworld /usr/local/helloworld
+chmod 755 /usr/local/helloworld/server.py
+systemctl daemon-reload
+systemctl enable helloworld.service
+systemctl restart helloworld.service || systemctl start helloworld.service
+exit 0

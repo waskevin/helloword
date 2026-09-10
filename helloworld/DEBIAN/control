@@ -1,0 +1,9 @@
+Package: helloworld
+Version: 1.0.1
+Section: web
+Priority: optional
+Architecture: amd64
+Maintainer: HelloWorld Developer <developer@example.com>
+Depends: python3
+Description: TOS 7 Hello World application
+ A minimal TOS 7 Deb application for beginner developer testing.

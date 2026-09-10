@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+systemctl stop helloworld.service 2>/dev/null || true
+exit 0

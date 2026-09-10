@@ -1,0 +1,97 @@
+[zh-cn]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "用于 TOS 7 开发测试的最小 Hello World 应用。"
+release_note = "首次发布。"
+important = "首次启动后通过应用入口访问。"
+
+[zh-hk]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[en-us]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[fr-fr]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[de-de]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[it-it]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[es-es]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[hu-hu]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[ja-jp]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[ko-kr]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[pl-pl]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[ru-ru]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[tr-tr]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
+
+[pt-pt]
+name = "Hello World"
+auth = "HelloWorld Developer"
+descript = "A minimal Hello World application for TOS 7 testing."
+release_note = "First release."
+important = "Access the application through its app entry after installation."
