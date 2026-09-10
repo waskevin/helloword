@@ -268,6 +268,68 @@ systemd 的 `Restart=on-failure` 会让失败进程不断重启，短时间内�
 
 **当前结论**：后端服务可用，TOS WebUI 代理入口仍未通过，不能把 `nginx -t` 通过当作平台入口通过。
 
+## 记录 20：手工放入 `conf.d` 仍不能代替 App Center 注册
+
+**真实结果**：确认 `/etc/nginx/nginx.conf` 包含 `conf.d/*.conf`，修正配置后 `nginx -t` 通过；但访问 TOS 的 8181 应用入口仍返回 404，且 `tos app info helloworld` 返回 `app not found`。
+
+**根因**：TOS App Center 不只依赖 Nginx 文件。它还需要在自己的应用数据库/注册目录中记录应用，并把应用安装到平台管理的路径（现有应用使用 `/Volume1/@apps/<appid>/`）。手工 `dpkg -i` 和手工复制 Nginx 配置只能验证后端与 Nginx 语法，无法完成平台注册。
+
+**修改意见**：文档应明确禁止把“手工 dpkg 安装”当成完整 App Center 测试；应提供官方本地安装/注册命令或说明如何通过 App Center 安装本地包，并明确注册后生成哪些文件、链接和数据库记录。
+
+**当前结论**：TOS 原生服务测试通过；App Center 注册和桌面入口测试仍需要使用平台正式安装流程。
+
+## 记录 21：官方文档是否说明了“手工 dpkg 安装”和“App Center 注册”的区别
+
+### 核查结论
+
+官方文档**分别提到了相关步骤，但没有把两者的边界讲清楚**：
+
+| 已提及内容 | 官方位置 | 能说明什么 |
+|---|---|---|
+| Deb 本地测试使用 `dpkg -i`、`systemctl`、`curl`、`dpkg --purge` | [Local Testing & Debugging](https://help.terra-master.com/developer/development-docs/local-testing)，网页行 44–100 | 官方确实把手工安装定义为 Deb 的本地功能测试方式，主要验证安装脚本、服务、端口、WebUI 和卸载清理。 |
+| Deb 安装阶段包括解包、执行 `postinst`、启动服务 | [Package Specification](https://help.terra-master.com/developer/development-docs/package-specification)，网页行 60–70 | 说明 `dpkg` 能验证 Debian 生命周期，但不等于已经完成 TOS App Center 的平台注册。 |
+| TOS App Center 的“手动安装”入口支持上传 `.deb` 或 `.tpk` | [TOS 7 App Center](https://help.terra-master.com/docs/TOS7/app-center/)，网页行 37–42 | 这才是面向 TOS 用户的应用安装入口；文档没有明确说明它会额外完成哪些注册动作。 |
+| App Center 可查看安装位置、端口、启用状态和安装日志 | [TOS 7 App Center](https://help.terra-master.com/docs/TOS7/app-center/)，网页行 51–59 | 这些平台管理能力不是普通 `dpkg -i` 命令本身提供的，因此应单独验证。 |
+
+### 本项目实际遇到的对应问题
+
+我们在 NAS 上直接执行 `dpkg -i` 后，服务和 `18080` 端口可以正常工作，但 `tos app info helloworld` 返回 `app not found`，TOS 的 `/helloworld/` 入口也返回 404。这与官方本地测试文档并不矛盾：文档要求验证服务和 `curl localhost:<port>`，并没有承诺命令行安装会建立 App Center 的应用记录、桌面入口或反向代理路由。
+
+### 文档中最容易让新手误解的地方
+
+1. “手工安装”在开发文档中指 `sudo dpkg -i`，在 TOS 用户手册中又指 App Center 的“Manual Install”按钮；同一个中文概念对应两个不同入口。
+2. Package Specification 行 64 写实际安装路径为 `/Volume*/@apps/<appid>/`，但 Deb 目录示例使用 `/usr/local/<appid>/`。文档没有明确区分“包内路径”和“App Center 安装后的运行路径”。
+3. 文档没有给出 App Center 注册成功后的可观察结果，例如 `tos app info` 应返回什么、应用记录存在哪里、Nginx 配置何时被加载。
+
+### 修改建议
+
+官方应在 Local Testing 页面增加醒目的边界说明：
+
+> `dpkg -i` 仅用于验证 Deb 生命周期和应用进程；若要验证 App Center 识别、应用注册、桌面入口、安装位置和反向代理，必须通过 TOS App Center 的“手动安装”流程，或使用开发者平台提供的 TOS 7 开发者虚拟机/注册测试流程。
+
+同时建议增加一份“命令行测试”和“App Center 集成测试”的对照表，并明确包内 `/usr/local/<appid>/` 与安装后 `/Volume*/@apps/<appid>/` 的关系。
+
+**当前判断**：这不是我们单纯修正 systemd 或 Nginx 语法即可解决的问题，而是文档没有明确说明“Deb 包功能测试”和“TOS 平台集成测试”是两层测试。当前包可以继续做本地 Deb 测试，但在 App Center 正式安装验证通过前，不应提交审核。
+
+## 记录 22：补充验证——代理入口可以恢复，但应用仍未注册
+
+在 NAS 上继续检查后得到以下结果：
+
+- `dpkg -s helloworld`：安装状态为 `install ok installed`，版本 `1.0.2`。
+- `systemctl is-active helloworld`：`active`。
+- 服务监听：`0.0.0.0:18080`。
+- `http://127.0.0.1:8181/helloworld/`：返回 `200 OK`，Hello World 页面可打开。
+- `tos app list` 中没有 `helloworld`，`tos app info helloworld` 仍返回 `app not found`。
+- `tos app install --help` 显示的参数是 `<app-id>`，说明该 CLI 安装的是应用中心中已有的应用，不是本地 `.deb` 文件。
+
+### 新结论
+
+此前的 404 主要是临时 Nginx 配置未加载导致；补充配置后，TOS 入口可以访问。但这次验证也进一步证明：
+
+> “Nginx 入口可访问”与“应用已经被 TOS App Center 注册”是两个独立条件。
+
+当前包已经通过 Deb、systemd、HTTP 和 Nginx 入口测试，但尚未通过 App Center 注册/管理测试。下一步应使用 TOS App Center 页面中的“手动安装”上传本地 `.deb`，再检查应用列表、详情页、启停、卸载、安装位置和日志，而不是继续用 `dpkg -i` 模拟该流程。
+
 ## 待验证问题
 
 - 官方 `config.ini` 的完整字段和 WebUI 字段命名需要与模板逐项核对。
