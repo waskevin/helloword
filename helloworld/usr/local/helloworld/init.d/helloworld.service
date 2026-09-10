@@ -1,0 +1,16 @@
+[Unit]
+Description=TOS 7 Hello World application
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=helloworld
+Group=helloworld
+ExecStart=/usr/local/helloworld/bin/helloworld
+Restart=on-failure
+RestartSec=3
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

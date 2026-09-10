@@ -155,6 +155,102 @@
 - Hello World 页面检查：通过
 - 仍未完成：开发者平台 Release 上传、自动校验和人工审核
 
+## 第二轮文档复读：容易误解的规范点
+
+### 1. 单包和双包的目录结构混在不同章节
+
+发布流程只强调“Deb 单包是一个 `.deb`”，但 Deb 目录规范又将 `config.ini`、语言文件、图标、WebUI 和服务文件分别放在 `/usr/local/<appid>/` 下；双包章节还把配置包和源包拆开。新手很容易做出一个“能用 dpkg 安装、但不符合 TOS 应用识别结构”的普通 Debian 包。
+
+### 2. WebUI External Open 的字段容易写错
+
+外部打开示例要求 `open_path: true`，同时用 `path: "http://${ip}:端口"`，而不是把 URL 写入 `open_path`。早期最小配置示例容易让人误以为 `open_path` 本身就是 URL。本项目最初就踩到了这个坑，已改为记录问题，但当前包仍需按官方完整 External Open 结构重构。
+
+### 3. External WebUI 不只是一个 HTTP 端口
+
+官方要求同时提供：
+
+- `webui.bz2`
+- `nginx/<app_id>.conf`
+- `path`
+- `open_path: true`
+- 后端监听端口
+
+只在 systemd 中启动 Python HTTP 服务并填写端口，虽然可以用 curl 访问，但不等于 TOS 桌面入口可用。
+
+### 4. 服务文件位置和安装位置描述不统一
+
+目录规范要求服务文件放在 `/usr/local/<appid>/init.d/<system_id>.service`，而普通 Debian 生命周期示例又容易让人直接放到 `/etc/systemd/system/`。新手照后者制作的包可能能被 systemd 启动，但平台扫描不到标准应用结构。
+
+### 5. 图标“存在”不等于图标合规
+
+规范要求图标位于 `images/icons/`，并且 `config.ini.icon` 必须写完整匹配路径，例如 `/images/icons/helloworld.svg`。本项目早期把图标放在包根目录、配置也写成 `icon.svg`；这能通过普通文件存在检查，但可能无法通过平台图标校验。
+
+### 6. `app.lang` 文件名存在明显认知成本
+
+发布流程和部分示例称它为 `app.lang`，目录规范及语言规范又要求 `<appid>.lang`，例如 `helloworld.lang`。这不是普通新手能自行推断的细节，应以开发者平台实际模板为最终依据，并在文档中给出明确优先级。
+
+### 7. 14 种语言列表在不同页面出现不同版本
+
+语言规范列出 `hu-hu`、`tr-tr`、`pt-pt` 等标签；审核标准摘要又出现 `ar`、`th`、`vi` 的列表。新手如果直接复制不同章节，可能得到不同的 14 个语言集合。官方应提供唯一的机器可校验语言清单。
+
+### 8. 端口冲突检查写在 FAQ，不在最小模板
+
+8080 在真实 NAS 上被 Docker 占用，造成 Python 服务重启循环。文档虽说明推荐端口范围和保留端口，但最小模板没有自动检查端口或给出端口选择策略；新手通常会直接照抄 8080。
+
+### 9. `active` 状态不能证明应用可用
+
+systemd 的 `Restart=on-failure` 会让失败进程不断重启，短时间内仍可能显示 active。必须同时检查 `systemctl is-active`、`journalctl`、`ss -ltnp` 和实际 HTTP 请求；官方测试章节应把这些作为一个完整检查命令。
+
+### 10. 包名规则在不同章节看起来互相矛盾
+
+发布页示例使用 `<app_id>_<platform>.deb`，打包章节又展示 `<appid>_<version>_<arch>.deb`。前者适用于 Release 资产命名，后者更像本地构建产物命名，但文档没有明确区分“本地文件名”和“最终上传文件名”。
+
+### 11. `low_version` 与实际兼容版本的关系不够直观
+
+文档要求声明最低 TOS 版本，同时又说明 TOS 7.x 保持 ABI/API 兼容。新手可能误以为填当前测试版本即可，实际上应填应用真正需要的最低版本，并在最新 TOS 7.x 上回归测试。
+
+### 12. 真实审核前缺少一份最终包结构示例
+
+当前文档分别解释配置、语言、图标、Nginx、systemd 和 Deb，但没有在发布流程中放一个“最终可上传单包的完整目录树 + 完整包内容”。这是本项目目前最重要的后续验证点。
+
+## 第三轮：问题定位、原因与修改意见
+
+> 行号采用官方帮助中心页面当前网页抓取行号，页面更新后可能变化；同时记录页面标题和章节，方便人工复核。
+
+| 问题 | 官方位置 | 为什么会误解 | 修改意见 |
+|---|---|---|---|
+| WebUI 外部打开的字段容易写反 | [Complete Examples](https://help.terra-master.com/developer/development-docs/deb-development-specification/complete-examples)，Example 2，网页行 138–152；[Subtypes](https://help.terra-master.com/pl/developer/development-docs/deb-development-specification/subtypes)，行 164–187 | `path` 是访问路径/URL，`open_path` 是布尔开关；但字段名看起来像 `open_path` 应该存 URL。本项目第一次把 URL 写进了 `open_path`。 | 在配置规范前增加字段表：`path = URL 或路由`、`open_path = true`；给出正确和错误各一个完整例子。 |
+| 外部 WebUI 需要 Nginx，不是只开端口 | [Complete Examples](https://help.terra-master.com/developer/development-docs/complete-examples)，行 122–164；[Subtypes](https://help.terra-master.com/pl/developer/development-docs/deb-development-specification/subtypes)，行 143–212 | 新手看到后端端口和 `open_path`，容易认为 TOS 会自动把端口接入桌面；实际上还必须有 `webui.bz2` 和 `nginx/<app_id>.conf`。 | 在发布流程中增加“WebUI 四件套”检查：`webui.bz2`、Nginx 配置、`path`、`open_path: true`。 |
+| systemd 文件位置容易选错 | [Complete Examples](https://help.terra-master.com/developer/development-docs/complete-examples)，行 124–136；[Subtypes](https://help.terra-master.com/pl/developer/development-docs/deb-development-specification/subtypes)，行 152–155 | 普通 Linux 教程习惯把 unit 文件放 `/etc/systemd/system`，TOS 应用目录规范却要求放在 `/usr/local/<appid>/init.d/`，新手不知道哪个是“打包目录”哪个是“系统安装后的目录”。 | 明确区分“包内路径”和“安装后路径”，并给出单包最终目录树，不要只给片段。 |
+| 图标路径不能只写文件名 | [Complete Examples](https://help.terra-master.com/developer/development-docs/complete-examples)，行 124–136、140–152 | `icon.svg` 在包根目录也确实存在，普通检查会通过；但 TOS 要求 `/images/icons/<file>.svg`，属于平台约定路径。 | 在自动校验脚本中同时检查文件实际路径和 `config.ini.icon` 完整匹配。 |
+| `app.lang` 的语言标签和文件名成本高 | [app.lang](https://help.terra-master.com/developer/development-docs/deb-development-specification/app-lang)，行 60–80；规则和格式位于同页后续章节 | 页面标题叫 `app.lang`，目录示例又使用 `<appid>.lang`；语言标签是 `zh-cn`，而很多开发者会自然写成 `zh_CN`。 | 提供一个可直接复制的 14 语言模板，并明确文件名优先以官方模板为准；自动检查大小写、连字符和 UTF-8/LF。 |
+| 14 种语言列表需要唯一来源 | [app.lang](https://help.terra-master.com/developer/development-docs/deb-development-specification/app-lang)，行 63–80；[Review Standards](https://help.terra-master.com/developer/development-docs/review-standards)，行 62–66 | 审核页摘要和语言页列表可能出现不同标签，开发者复制不同页面会产生不同集合。 | 发布一个官方 `required_languages.json`，文档各处只引用它，避免手工维护多份列表。 |
+| 单包和双包的文件名规则看起来冲突 | [Packaging and Verification](https://help.terra-master.com/developer/development-docs/deb-development-specification/packaging)，行 89–112；发布流程页的 Release 规则另有命名示例 | 打包页示例包含版本号，发布页示例又要求 Release 资产名不含版本号；新手无法判断哪个用于本地、哪个用于上传。 | 明确写成两栏：“本地构建文件名”和“Release 上传文件名”，并给出最终唯一推荐值。 |
+| Release Tag 与包内版本是多处同步 | [Publishing Process](https://help.terra-master.com/developer/development-docs/publishing-process)，行 73–94、117–128 | 版本号同时出现在配置、control、语言文件、平台表单和 Release Tag，手工修改极易漏改。本项目曾出现 `control=1.0.1` 但 `config.ini=1.0.0`。 | 提供统一版本变量和校验脚本；提交前一次性打印所有版本并比较。 |
+| `active` 不等于 HTTP 健康 | [Local Testing](https://help.terra-master.com/developer/development-docs/local-testing)，行 66–76；[Review Standards](https://help.terra-master.com/developer/development-docs/review-standards)，行 141–143 | systemd 的自动重启可能让失败服务短暂显示 active；本项目 8080 冲突时正是如此。 | 官方测试命令应包含 `systemctl is-active`、`journalctl`、`ss -ltnp` 和实际 HTTP 请求四步。 |
+| 端口冲突提示出现得太晚 | [FAQ](https://help.terra-master.com/developer/development-docs/faq)，端口问题章节；[Subtypes](https://help.terra-master.com/pl/developer/development-docs/deb-development-specification/subtypes)，行 188–192 | 最小示例通常直接使用 8080，但 NAS 上可能已有 Docker 占用；文档没有在第一个示例中强制提醒。 | 在最小模板中选高位默认端口，并在 `preinst` 或构建校验阶段检查冲突；明确保留端口清单。 |
+| 包构建成功不代表平台合规 | [Packaging and Verification](https://help.terra-master.com/developer/development-docs/deb-development-specification/packaging)，行 91–112；[Review Standards](https://help.terra-master.com/developer/development-docs/review-standards)，行 190–220 | `dpkg-deb` 只检查 Debian 包基本结构，不会检查 TOS 的 WebUI、图标、语言、Nginx 或应用字段。 | 提供官方 `tos-app-lint`，把 Debian 校验和 TOS 结构校验合并为一次命令。 |
+| 真机、开发者平台、审核平台入口不同 | [Review Standards](https://help.terra-master.com/developer/development-docs/review-standards)，行 169–170；[Publishing Process](https://help.terra-master.com/developer/development-docs/publishing-process)，行 48–60 | 新手容易以为开发者平台上传后就能直接安装到自己的 NAS，实际上提交、测试、审核是不同入口和流程。 | 发布流程增加一张流程图：本地构建 → NAS 真机安装 → GitHub/Gitee Release → Developer Platform 提交 → 审核平台验证。 |
+| 审核失败有时限和累计机制 | [Review Standards](https://help.terra-master.com/developer/development-docs/review-standards)，行 223–230 | 新手只看到“修复后重提”，容易忽略 30 天期限、连续失败计数和版本必须递增。 | 在提交按钮旁显示失败处理规则、截止时间和下一版本要求。 |
+
+## 记录 17：能运行的普通 Deb 包不等于 TOS 标准应用包
+
+**真实发现**：最初的包可以通过 `dpkg-deb` 构建并启动 systemd，但目录放置方式、图标路径、语言文件命名、WebUI 入口和 Nginx 配置均不完整。
+
+**原因**：Debian 的“可安装”标准与 TOS 的“可被 App Center 识别并打开”标准是两层规范。前者只关心 `DEBIAN/control` 和文件安装，后者还要扫描 TOS 约定目录和 `config.ini` 关联字段。
+
+**修正**：增加官方 External WebUI 所需的 `bin/`、`init.d/`、`web/`、`nginx/`、`images/icons/`，并将 `config.ini` 改为 `path` + `open_path: true`。
+
+## 记录 18：Windows 本地生成 `webui.bz2` 不可靠
+
+**真实结果**：尝试在 Windows 使用系统 `tar` 根据 Web 目录生成 `webui.bz2` 时，命令因路径访问失败退出，留下的文件只有 42 字节，不能视为有效前端归档。
+
+**原因**：TOS 文档给出的打包命令基于 Linux shell 和 GNU tar；Windows 的 tar 实现、路径编码和压缩参数行为可能不同。文件存在不代表归档有效。
+
+**修改意见**：官方应提供跨平台打包脚本，或直接提供 `webui.bz2` 生成工具；文档还应给出 `tar -tjf webui.bz2` 的完整验证命令。
+
+**当前处理**：本轮只完成了标准目录和配置重构；`webui.bz2` 必须在 NAS/Ubuntu 环境重新生成并验证后，才能进入最终打包。
+
 ## 待验证问题
 
 - 官方 `config.ini` 的完整字段和 WebUI 字段命名需要与模板逐项核对。

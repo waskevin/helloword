@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
 chown -R helloworld:helloworld /usr/local/helloworld
-chmod 755 /usr/local/helloworld/server.py
+chmod 755 /usr/local/helloworld/bin/helloworld /usr/local/helloworld/web/server.py
+ln -sf /usr/local/helloworld/init.d/helloworld.service /etc/systemd/system/helloworld.service
 systemctl daemon-reload
 systemctl enable helloworld.service
 systemctl restart helloworld.service || systemctl start helloworld.service
